@@ -1,0 +1,79 @@
+<!doctype html>
+<html>
+<head>
+  <title>Demo</title>
+
+  <script type="text/javascript" src="static/vis-4.21.0/vis-4.21.0/dist/vis.js"></script>
+  <script src="http://apps.bdimg.com/libs/jquery/1.11.1/jquery.min.js"></script>
+  <link href="static/vis-4.21.0/vis-4.21.0/dist/vis-network.min.css" rel="stylesheet" type="text/css" />
+
+  <style type="text/css">
+    #mynetwork {
+      width: 600px;
+      height: 400px;
+      border: 1px solid lightgray;
+    }
+  </style>
+</head>
+<body>
+
+<h1>
+  Demo
+</h1>
+
+<div id="mynetwork"></div>
+
+<form action="/get_demo" method="get">
+	number1: <input type="text" id="number1"> <br>
+	number2: <input tupe="text" id="number2"> <br>
+  <button type="button" id='demo'>提交</button>
+</form>
+
+
+<script type="text/javascript">
+  $(document).ready(function(){
+
+    $("#demo").click(function(){
+      var number1 = $("#number1").val();
+      var number2 = $("#number2").val();
+      $.get(
+        "/get_demo",
+        {'number1':number1,'number2':number2},
+        function(ret){
+          ret = JSON.parse(ret);          
+          var t_nodes = [];
+          for(var i=0; i<ret['nodelist'].length; i++){
+						t_nodes[i] = {
+            	id: ret['nodelist'][i], 
+              label: ret['nodelist'][i],
+              title: 'Value: '+ret['valuelist'][i]
+              };
+          }
+          var t_edges = [];
+          for(var i=0; i<ret['nodelist'].length; i++){
+            t_edges[i] = {
+              from: ret['nodelist'][i], 
+              to: ret['nodelist'][i+1]
+              };
+          }
+          var t_container = document.getElementById('mynetwork');
+          var t_data = {
+            nodes: t_nodes,
+            edges: t_edges
+          };
+          var t_options = {
+            nodes: {borderWidth: 2},
+            edges: {hover: true}
+          };
+          var t_network = new vis.Network(t_container, t_data, t_options);
+					t_network.on("click", function (params) {
+            alert(JSON.stringify(params.nodes[0], null, 4).replace('"','').replace('"',''));
+          });
+        })
+    });
+
+  });
+</script>
+
+</body>
+</html>

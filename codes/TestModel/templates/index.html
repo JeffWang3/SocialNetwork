@@ -1,0 +1,442 @@
+<!doctype html>
+<html>
+<head>
+  <title>Network Groups and Markets</title>
+
+  <script type="text/javascript" src="static/vis-4.21.0/vis-4.21.0/dist/vis.js"></script>
+  <script src="http://apps.bdimg.com/libs/jquery/1.11.1/jquery.min.js"></script>
+  <link href="static/vis-4.21.0/vis-4.21.0/dist/vis-network.min.css" rel="stylesheet" type="text/css" />
+
+  <style type="text/css">
+    #mynetwork {
+      width: 700px;
+      height: 700px;
+      border: 1px solid lightgray;
+      float: left;
+      padding:10px 10px;
+      background-color:rgb(220, 240, 238);
+    }
+    ul li{
+    	font-famliy: verdana;
+    	font-size: 20px;
+    	font-weight: bold;
+      margin: 10px 0 10px 0;
+      list-style-type : none;
+    }
+    input[type="text"] {
+      font-size: 12px;
+      border-radius: 6px;
+      padding: 5px 10px;
+      border: 1px solid #ddd;
+      background-color:#99FFCC;
+      width: 100px;
+    }
+    #backg {
+      border:1px solid #ccc;
+      border-top:none;
+      padding:20px;
+      height:800px;
+      width:1290px;
+      border-radius: 20px;
+      background:#f3fa9a;
+    }
+    #menu {
+      width:180px;
+      height:980px;
+      float:left;
+    }
+    #cont{
+      width:100px;
+      float:left;
+      border: 2px solid #f3fa9a;
+      border-radius: 15px;
+      padding:10px;
+      margin:10px;
+      height:500px;
+      color:#556b2f;
+      font-size:25px;
+      background-color:#ffe0a0;
+    }
+    #info{
+      float:left;
+      width:200px;
+      padding:10px;
+      margin:10px;
+      border: 2px solid #a87d21;
+      font-famliy: verdana;
+    	font-size: 17px;
+    }
+    input[type="button"] {
+      background: #999;
+	    border-radius: 4px;
+      border: none;
+      padding: 5px 10px;
+      color: white;
+      font-size: 12px;
+	    width:100px;
+    }
+    input[type="button"]:hover,
+    input[type="button"]:focus {
+      background: #777;
+    }
+    input[type="button"]:active {
+      background: #666;
+    }
+  </style>
+</head>
+<body>
+
+<h1>
+  Network Groups and Markets | Group 9 
+</h1>
+
+<div id="backg">
+  <div id="menu">
+    <form action="/get_top" method="get">
+      <ul>
+        <li><input type="text" id="name" placeholder="请输入姓名"><br></li>
+        <li><input type="text" id="k" placeholder="请输入邻居个数"><br></li>
+        <li><input type="button" id='gettop' value="提交"></input></li>
+        <li><input type="button" id='gettop2' value="提交2"></input></li>
+      </ul>
+    </form>
+
+    <form action="/get_path" method="get">
+      <ul>
+        <li><input type="text" id="name1" placeholder="请输入姓名1"> <br></li>
+        <li><input type="text" id="name2" placeholder="请输入姓名2"> <br></li>
+        <li><input type="text" id="nob" placeholder="请输入路径排名"> <br></li>
+        <li><input type="button" id='getallpath' value="寻找所有路径"></input></li>
+        <li><input type="button" id='getspath' value="寻找单条路径"></inupt></li>
+        <li><input type="button" id='getnewslist' value="寻找所有新闻"></input></li>
+      </ul>
+    </form>
+  </div>
+  <div id="cont">
+    <p>TOP: <br></p>
+    <pre id="stk"></pre>
+  </div>
+  <div id="mynetwork"></div>
+    <div id="info">
+      节点个数：</br>79688</br>
+      连通分量个数：</br>593</br>
+      最大连通分量大小：</br>78005</br>
+      影响力最大的20个人：</br>
+      习近平、胡锦涛、温家宝、李克强、徐建平、程永华、
+      邱小琪、伍江、裴刚、杨洁篪、吴志强、罗林泉、杨厚兰、
+      杨贤金、孔子、邓小平、马锦民、诺贝尔、季志业、吴邦国
+    </div>
+  </div>
+</div>
+
+<script type="text/javascript">
+  $(document).ready(function(){
+
+    $("#gettop").click(function(){
+      var name = $("#name").val();
+      var k = $("#k").val();
+      $.get(
+        "/get_top",
+        {'name':name,'k':k},
+        function(ret){
+          ret = JSON.parse(ret);          
+          top_list = '';
+          for(var i=0; i<ret['t_topk'].length; i++){
+            if(ret['t_topk'][i] == name)
+              continue;
+            top_list+=ret['t_topk'][i];
+            top_list+='</br>';
+          }
+          document.getElementById('stk').innerHTML =  top_list;
+          var t_nodes = [];
+          for(var i=0; i<ret['t_topk'].length; i++){
+            if(ret['t_topk'][i]==name){
+              t_nodes[i] = {
+                id: ret['t_topk'][i], 
+                label: ret['t_topk'][i],
+                shape: 'diamond',
+                class: 'node',
+                title: '聚集系数：'+ret['clustering'][i]+'</br>PageRank值：'+ret['prank'][i]+'</br>中心性：'+ret['central'][i]
+                };
+            }
+            else{
+              t_nodes[i] = {
+                id: ret['t_topk'][i], 
+                label: ret['t_topk'][i],
+                title: '聚集系数：'+ret['clustering'][i]+'</br>PageRank值：'+ret['prank'][i]+'</br>中心性：'+ret['central'][i]
+                };
+            }
+          }
+          var t_edges = [];
+          for(var i=0; i<ret['t_from'].length; i++){
+            if(ret['t_from'][i]==name||ret['t_to'][i]==name)
+              t_edges[i] = {
+                from: ret['t_from'][i], 
+                to: ret['t_to'][i], 
+                width: ret['t_edgew'][i]*ret['t_edgew'][i]/10000, 
+                color: {color:'rgb(100,3,34)'},
+                label: ret['t_edgew'][i].toString(),
+                length: 500
+                };
+            else
+              t_edges[i] = {
+                from: ret['t_from'][i], 
+                to: ret['t_to'][i], 
+                width: ret['t_edgew'][i]*ret['t_edgew'][i]/10000, 
+                color: {color:'rgb(34,3,100)'},
+                title: ret['t_edgew'][i].toString(),
+                length: 500
+                };
+          }
+          var t_container = document.getElementById('mynetwork');
+          var t_data = {
+            nodes: t_nodes,
+            edges: t_edges
+          };
+          var t_options = {
+            nodes: {borderWidth: 2},
+            edges: {hover: true}
+          };
+          var t_network = new vis.Network(t_container, t_data, t_options);
+          var flag = 0;
+          t_network.on("click", function (params) {
+            if(flag == 0)
+              $('#name1').val(JSON.stringify(params.nodes[0], null, 4).replace('"','').replace('"',''));
+            else
+              $('#name2').val(JSON.stringify(params.nodes[0], null, 4).replace('"','').replace('"',''));
+            flag = 1-flag;
+          });
+        })
+    });
+
+    $("#gettop2").click(function(){
+      var name = $("#name").val();
+      var k = $("#k").val();
+      $.get(
+        "/get_top",
+        {'name':name,'k':k},
+        function(ret){
+          ret = JSON.parse(ret);          
+          var t2_nodes = [];
+          top_list = '';
+          for(var i=0; i<ret['t_topk'].length; i++){
+            if(ret['t_topk'][i] == name)
+              continue;
+            top_list+=ret['t_topk'][i];
+            top_list+='</br>';
+          }
+          document.getElementById('stk').innerHTML =  top_list;
+          for(var i=0; i<ret['t_topk'].length; i++){
+            if(ret['t_topk'][i]==name){
+              t2_nodes[i] = {
+                id: ret['t_topk'][i], 
+                label: ret['t_topk'][i],
+                shape: 'diamond',
+                class: 'node',
+                title: '聚集系数：'+ret['clustering'][i]+'</br>PageRank值：'+ret['prank'][i]+'</br>中心性：'+ret['central'][i]
+                };
+            }
+            else{
+              t2_nodes[i] = {
+                id: ret['t_topk'][i], 
+                label: ret['t_topk'][i],
+                title: '聚集系数：'+ret['clustering'][i]+'</br>PageRank值：'+ret['prank'][i]+'</br>中心性：'+ret['central'][i]
+                };
+            }
+          }
+          var t2_edges = [];
+          var f = 0;
+          for(var i=0; i<ret['t_from'].length; i++){
+            if(ret['t_from'][i]==name||ret['t_to'][i]==name)
+            {
+              t2_edges[f] = {
+                from: ret['t_from'][i], 
+                to: ret['t_to'][i], 
+                width: ret['t_edgew'][i]*ret['t_edgew'][i]/10000, 
+                color: {color:'rgb(100,3,34)'},
+                label: ret['t_edgew'][i].toString(),
+                length: 300
+                };
+              f ++;
+            }    
+          }
+          var t2_container = document.getElementById('mynetwork');
+          var t2_data = {
+            nodes: t2_nodes,
+            edges: t2_edges
+          };
+          var t2_options = {
+            nodes: {borderWidth: 2},
+            edges: {hover: true}
+          };
+          var t2_network = new vis.Network(t2_container, t2_data, t2_options);
+          var flag = 0;
+          t2_network.on("click", function (params) {
+            if(flag == 0)
+              $('#name1').val(JSON.stringify(params.nodes[0], null, 4).replace('"','').replace('"',''));
+            else
+              $('#name2').val(JSON.stringify(params.nodes[0], null, 4).replace('"','').replace('"',''));
+            flag = 1-flag;
+          });
+        })
+    });
+
+    $("#getallpath").click(function(){
+      var name1 = $("#name1").val();
+      var name2 = $("#name2").val();
+      $.get(
+        "/get_allpath",
+        {'name1':name1,'name2':name2},
+        function(ret){
+          ret = JSON.parse(ret);      
+          var p_nodes = [];
+          for(var i=0; i<ret['name_list'].length; i++){
+            if(ret['name_list'][i]==name1||ret['name_list'][i]==name2){
+              p_nodes[i] = {
+                id: ret['name_list'][i], 
+                label: ret['name_list'][i],
+                shape: 'diamond',
+                title: '聚集系数：'+ret['clustering'][i]+'</br>PageRank值：'+ret['prank'][i]+'</br>中心性：'+ret['central'][i]
+                };
+            }
+            else{
+              p_nodes[i] = {
+                id: ret['name_list'][i], 
+                label: ret['name_list'][i],
+                title: '聚集系数：'+ret['clustering'][i]+'</br>PageRank值：'+ret['prank'][i]+'</br>中心性：'+ret['central'][i]
+                };
+            }
+          }      
+          var p_edges = [];
+          var t = 0;
+          for(var i=0; i<ret['path_list'].length; i++){
+            for(var j=0; j<ret['path_list'][i].length-1; j++){
+              p_edges[t] = {
+                from: ret['path_list'][i][j], 
+                to: ret['path_list'][i][j+1], 
+                width: 5, 
+                color: {color:'rgb('+(200-i*20).toString()+','+(i*20).toString()+','+(i*20).toString()+')'},
+                length: 200
+                };
+              t ++;
+            }
+          }
+          var p_container = document.getElementById('mynetwork');
+          var p_data = {
+            nodes: p_nodes,
+            edges: p_edges
+          };
+          var p_options = {
+            nodes: {borderWidth: 2},
+            edges: {hover: true}
+          };
+          var p_network = new vis.Network(p_container, p_data, p_options);      
+          var flag = 0;
+          p_network.on("click", function (params) {
+            if(flag == 0)
+              $('#name1').val(JSON.stringify(params.nodes[0], null, 4).replace('"','').replace('"',''));
+            else
+              $('#name2').val(JSON.stringify(params.nodes[0], null, 4).replace('"','').replace('"',''));
+            flag = 1-flag;
+          });
+        })      
+    });
+
+    $("#getspath").click(function(){
+      var name1 = $("#name1").val();
+      var name2 = $("#name2").val();
+      var no = $("#nob").val()-1;
+      $.get(
+        "/get_allpath",
+        {'name1':name1,'name2':name2},
+        function(ret){
+          ret = JSON.parse(ret);      
+          var p_nodes = [];
+          var n = 0;
+          var f = 0;
+          for(var i=0; i<ret['name_list'].length; i++){
+            f = 0;
+            for(var k=0; k<ret['path_list'][no].length; k++){  
+              if(ret['name_list'][i]==ret['path_list'][no][k]){
+                f = 1;
+                break;
+              }
+            }
+            if(f == 0)
+              continue;
+            if(ret['name_list'][i]==name1||ret['name_list'][i]==name2){
+              p_nodes[n] = {
+                id: ret['name_list'][i], 
+                label: ret['name_list'][i],
+                shape: 'diamond',
+                title: '聚集系数：'+ret['clustering'][i]+'</br>PageRank值：'+ret['prank'][i]+'</br>中心性：'+ret['central'][i]
+                };
+              n ++;
+            }
+            else{
+              p_nodes[n] = {
+                id: ret['name_list'][i], 
+                label: ret['name_list'][i],
+                title: '聚集系数：'+ret['clustering'][i]+'</br>PageRank值：'+ret['prank'][i]+'</br>中心性：'+ret['central'][i]
+                };
+              n ++;
+            }
+          }      
+          var p_edges = [];
+          var t = 0;
+          var i = no;
+          for(var j=0; j<ret['path_list'][i].length-1; j++){
+            p_edges[t] = {
+              from: ret['path_list'][i][j], 
+              to: ret['path_list'][i][j+1], 
+              width: 5, 
+              color: {color:'rgb('+(200-i*20).toString()+','+(i*20).toString()+','+(i*20).toString()+')'},
+              length: 200
+              };
+            t ++;
+          }
+          var p_container = document.getElementById('mynetwork');
+          var p_data = {
+            nodes: p_nodes,
+            edges: p_edges
+          };
+          var p_options = {
+            nodes: {borderWidth: 2},
+            edges: {hover: true}
+          };
+          var p_network = new vis.Network(p_container, p_data, p_options);      
+          var flag = 0;
+          p_network.on("click", function (params) {
+            if(flag == 0)
+              $('#name1').val(JSON.stringify(params.nodes[0], null, 4).replace('"','').replace('"',''));
+            else
+              $('#name2').val(JSON.stringify(params.nodes[0], null, 4).replace('"','').replace('"',''));
+            flag = 1-flag;
+          });
+        })      
+    });
+
+    $("#getnewslist").click(function(){
+      var name1 = $("#name1").val();
+      var name2 = $("#name2").val();
+      $.get(
+        "/get_newslist",
+        {'name1':name1,'name2':name2},
+        function(ret){
+          ret = JSON.parse(ret);
+          news_list = '';
+          for(var i=0; i<ret['news_list'].length; i++){
+            news_list+=ret['news_list'][i];
+            news_list+=ret['time_list'][i];
+            news_list+='</br>';
+          }
+          //document.getElementById('news_list').innerHTML =  news_list;
+          document.write(news_list);
+        })
+    });
+
+  });
+</script>
+
+</body>
+</html>
